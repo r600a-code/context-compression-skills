@@ -65,7 +65,7 @@ Rules:
 ## Install
 
 ```bash
-npx skills add <owner>/<repo>
+npx skills add r600a-code/context-compression-skills@context-compression
 ```
 
 Or copy the folder into your local skills directory.

@@ -65,7 +65,7 @@
 ## 安装
 
 ```bash
-npx skills add <owner>/<repo>
+npx skills add r600a-code/context-compression-skills@context-compression
 ```
 
 或手动把这个目录放进本地 skills 目录。
