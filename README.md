@@ -72,7 +72,7 @@
 | Codex | 中高 | 支持 project-local skills，但目录与包装需适配 |
 | Gemini CLI | 中高 | 核心方法可迁移，通常要改写成 GEMINI.md / .gemini 风格 |
 | OpenHands | 中高 | 支持 skills 与 AGENTS.md，但更适合做成 OpenHands 风格封装 |
-| Hermes | 高 | 同样适用；放在最后，是因为这个仓库希望先服务更广泛的开源 Agent 生态 |
+| Hermes | 高 | 同样适用 |
 
 ## 怎么理解这个仓库
 
