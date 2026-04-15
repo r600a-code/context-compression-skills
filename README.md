@@ -1,6 +1,6 @@
 # context-compression
 
-一个用于长会话压缩的 Hermes skill。
+一个用于长会话压缩的跨 Agent skill。
 
 它关注的不是把上下文压得更短，而是压缩后还能继续做对的事。
 
@@ -62,13 +62,42 @@
 - `README.md`：中文说明
 - `README_EN.md`：英文说明
 
-## 安装
+## Agent 兼容矩阵
 
-```bash
-npx skills add r600a-code/context-compression-skills@context-compression
-```
+| Agent | 兼容度 | 说明 |
+|---|---|---|
+| Claude Code | 高 | 原生支持 skills / SKILL.md，最接近当前结构 |
+| Cline | 高 | 支持 Skills 与 SKILL.md，迁移成本很低 |
+| Cursor | 高 | 支持 Skills / Rules / Subagents，核心内容可直接迁移 |
+| Codex | 中高 | 支持 project-local skills，但目录与包装需适配 |
+| Gemini CLI | 中高 | 核心方法可迁移，通常要改写成 GEMINI.md / .gemini 风格 |
+| OpenHands | 中高 | 支持 skills 与 AGENTS.md，但更适合做成 OpenHands 风格封装 |
+| Hermes | 高 | 同样适用；放在最后，是因为这个仓库希望先服务更广泛的开源 Agent 生态 |
 
-或手动把这个目录放进本地 skills 目录。
+## 怎么理解这个仓库
+
+这不是某一个 Agent 独占的格式。
+
+它更接近一种开源精神下的通用方法：
+- 优先服务更广泛的 Agent 生态
+- 不把方法论锁死在单一产品里
+- 鼓励不同 Agent 按自己的方式适配与演化
+
+真正可迁移的是：
+- 压缩后保留当前目标
+- latest user turn beats stale summary
+- timeline（done / now / next）
+- active TODOs
+- blocker / next action
+
+真正需要按 Agent 换壳的是：
+- 安装命令
+- 目录结构
+- frontmatter / 元数据
+- 自动触发方式
+
+所以更准确的说法是：
+这是一个跨 Agent 可迁移的 context engineering skill，遵循开源精神，欢迎不同 Agent 生态复用、改写、再分发，而不是单一平台专属包。
 
 ## 一句话
 

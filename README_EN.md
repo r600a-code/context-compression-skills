@@ -1,6 +1,6 @@
 # context-compression
 
-A Hermes skill for long-session context compression.
+A cross-agent skill for long-session context compression.
 
 It is not only about making context shorter. It is about keeping the agent on the right task after compression.
 
@@ -62,13 +62,42 @@ Rules:
 - `README.md` — Chinese readme
 - `README_EN.md` — English readme
 
-## Install
+## Agent compatibility matrix
 
-```bash
-npx skills add r600a-code/context-compression-skills@context-compression
-```
+| Agent | Compatibility | Notes |
+|---|---|---|
+| Claude Code | High | Native skills / SKILL.md support; closest match to the current structure |
+| Cline | High | Supports Skills and SKILL.md; very low migration cost |
+| Cursor | High | Supports Skills / Rules / Subagents; core content transfers cleanly |
+| Codex | Medium-high | Supports project-local skills, but packaging and directory layout need adaptation |
+| Gemini CLI | Medium-high | Core method transfers well, usually via GEMINI.md / .gemini-style packaging |
+| OpenHands | Medium-high | Supports skills and AGENTS.md, but works best with an OpenHands-style wrapper |
+| Hermes | High | Also a strong fit; listed last because the repository aims to serve the broader open-source agent ecosystem first |
 
-Or copy the folder into your local skills directory.
+## How to think about this repository
+
+This is not a format owned by one agent.
+
+It is better understood as an open-source method:
+- serve the broader agent ecosystem first
+- avoid locking the method into a single product
+- encourage adaptation and evolution across different agent runtimes
+
+What actually transfers across agents:
+- preserving the current objective after compression
+- latest user turn beats stale summary
+- timeline (`done / now / next`)
+- active TODOs
+- blocker / next action
+
+What usually needs an agent-specific wrapper:
+- install command
+- directory layout
+- frontmatter / metadata
+- auto-trigger mechanism
+
+So the more accurate framing is:
+this is a cross-agent context engineering skill built in an open-source spirit, meant to be reused, adapted, and redistributed across agent ecosystems rather than kept as a single-platform package.
 
 ## One line
 
