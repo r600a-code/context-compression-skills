@@ -213,6 +213,82 @@ At every compression boundary, preserve this minimum block:
 
 If this block is missing, resumption quality will usually collapse.
 
+## Execution protocol
+
+Run compression and recovery as gates, not as loose advice.
+
+### Gate 1: Pre-compression
+
+Before compressing, the agent should be able to answer all of these explicitly:
+- What is the current objective?
+- What changed most recently?
+- What is the current `in_progress` TODO?
+- What is the next executable step?
+
+If any answer is missing or vague:
+1. rebuild the continuity block first
+2. keep literal paths / IDs / blockers visible
+3. do not compress yet
+
+### Gate 2: Post-compression validation
+
+Immediately after generating a compressed summary, verify that the summary still preserves:
+- current objective
+- most recent direction change
+- done / now / next timeline state
+- active TODO state
+- touched files / artifacts / IDs
+- blockers
+- next executable step
+
+If any required item is missing, contradictory, or over-abstracted:
+1. mark the compression as failed
+2. regenerate the structured summary
+3. do not resume execution from the failed summary
+
+### Gate 3: Resume-before-action
+
+Before taking the next tool or execution step after a compression boundary, restate:
+1. one-line current objective
+2. any stale-summary conflicts
+3. rebuilt active TODOs
+4. next executable step
+
+If the latest user turn conflicts with the compressed summary, the conflict must be resolved before execution continues.
+
+### Gate 4: Recovery fallback
+
+If the agent cannot confidently recover the live task state:
+1. stop execution on the old branch
+2. mark the surviving summary as incomplete or stale
+3. reconstruct continuity from the latest user turn + literal artifacts + remaining TODO state
+4. if recovery is still impossible, ask for clarification instead of guessing
+
+## Edge cases
+
+Handle these explicitly instead of relying on generic summarization:
+
+1. Repeated user redirects
+   - preserve both the latest change and the latest stable objective
+   - if they differ, follow the latest explicit instruction
+
+2. Multi-track work
+   - distinguish primary work, parked work, and cancelled work
+   - do not flatten parallel threads into one ambiguous TODO list
+
+3. No-file but high-decision sessions
+   - if no files changed, preserve key decisions, external URLs, IDs, errors, and selected options as artifacts
+   - do not let an empty file section imply that nothing important happened
+
+4. Summary-vs-latest-turn conflict
+   - state the conflict explicitly
+   - mark stale summary items as stale
+   - continue with the latest user turn, not the older summary
+
+5. Incomplete continuity
+   - if the current objective or next step cannot be recovered reliably, do not guess
+   - pause, rebuild, or ask
+
 ## Compression triggers
 
 Useful trigger strategies:
@@ -241,6 +317,16 @@ Useful probes:
 - What is the next action?
 
 If the agent cannot answer those precisely after compression, the compression failed.
+
+## Anti-patterns
+
+Avoid these failure modes:
+- letting old TODO state outrank the latest user turn
+- continuing execution before restating the current objective
+- collapsing done / now / next into one prose blob
+- replacing literal paths, IDs, or errors with vague abstractions
+- treating a structurally complete summary as trustworthy when its contents conflict with the latest turn
+- guessing through incomplete continuity instead of rebuilding or asking
 
 ## Practical checklist
 

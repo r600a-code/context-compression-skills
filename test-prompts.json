@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name": "redirect-overrides-stale-summary",
+    "prompt": "You are taking over a compressed long session. The surviving summary says the current objective is to publish the repo and finish README work, with an in-progress TODO to keep writing README_EN.md. But the latest user message says: 'Stop publishing and stop README work. The real task is to design 3 tests and evaluate whether compression recovery is reliable.' Restate the real current objective, mark stale summary items, rebuild the active TODOs, and give the next executable step.",
+    "expected": "The agent should prioritize the latest user turn, mark README/publish work as stale or deprioritized, rebuild TODOs around testing recovery reliability, and avoid continuing the dead branch."
+  },
+  {
+    "id": 2,
+    "name": "timeline-and-artifact-preservation",
+    "prompt": "You only have a compressed continuity block for a multi-phase task. It says: done = failure modes analyzed; done = recovery rules added; now = design validation prompts; next = run dry-run evaluation. It also lists touched artifacts including a literal SKILL.md path and an error note about 'continuing a dead branch after compression'. Resume the work: state the current phase, identify what is done/now/next, list the artifacts that must stay literal, and give the immediate next action.",
+    "expected": "The agent should preserve done/now/next ordering, keep the literal artifact path and error note, and continue from validation rather than reverting to drafting or publishing."
+  },
+  {
+    "id": 3,
+    "name": "conflict-recovery-with-no-file-edits",
+    "prompt": "An old compressed summary says the objective is to modify local files and write out compression artifacts. But the latest user message says: 'Do not modify any files. Only do a dry-run: design 3 test prompts, explain what the skill improves, where it still fails, and give a 1-10 performance score.' Explain the conflict, mark stale or cancelled TODOs, rewrite the current objective, and give the correct next executable step.",
+    "expected": "The agent should explicitly stop file edits, explain why the old summary is stale, shift to analysis-only TODOs, and produce a dry-run evaluation path."
+  }
+]

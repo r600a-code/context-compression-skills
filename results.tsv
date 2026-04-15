@@ -1,0 +1,3 @@
+timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
+2026-04-15T17:48:17	baseline	context-compression	-	77.3	baseline	-	Initial darwin-style baseline from independent structure review + dry-run evaluation	dry_run
+2026-04-15T17:53:00	8609c16	context-compression	77.3	88.8	keep	execution-protocol,edge-cases,anti-patterns	Added gated execution protocol, explicit edge cases, anti-patterns, and repo-local test-prompts.json	dry_run
