@@ -1,12 +1,12 @@
 ---
 name: context-compression
-description: Preserve task continuity across long sessions by using structured summaries, explicit planning artifacts, timeline checkpoints, and post-compression recovery rules. Use when sessions exceed context limits, summaries drift, or the agent starts following stale tasks after compression.
-version: 1.1.0
+description: Preserve task continuity across long sessions by using structured summaries, continuity blocks, timeline checkpoints, TODO state, and post-compression recovery rules. Use when sessions exceed context limits, summaries drift, or the agent starts following stale tasks after compression.
+version: 1.2.0
 author: Hermes Agent
 license: MIT
 metadata:
   hermes:
-    tags: [context, compression, summarization, continuity, memory, planning, timeline, todo]
+    tags: [context, compression, summarization, continuity, recovery, planning, timeline, todo, verification]
 ---
 
 # Context Compression
@@ -14,52 +14,90 @@ metadata:
 Compression is not about making context smaller.
 Compression is about making work resumable.
 
-If a summary is short but the agent resumes the wrong task, loses touched files, or ignores the user's latest correction, the compression failed.
+If a summary is short but the agent resumes the wrong task, loses touched files, ignores the user's latest correction, or acts before re-anchoring the timeline, the compression failed.
 
-## What problem this skill solves
+## What problem this skill actually solves
 
-Long sessions usually fail in the same pattern:
-- the early task survives, but the latest task change disappears
-- modified files, URLs, IDs, and blockers get dropped
-- the summary explains what happened, but not what should happen next
-- old TODO state becomes louder than the user's latest turn
-- after compression, the agent continues a dead branch and reports fake progress
+This skill exists to prevent a specific failure pattern:
+- the session gets compressed
+- the surviving summary keeps old narrative but loses the current objective
+- file changes, runtime state, decisions, or pending actions disappear
+- stale TODOs survive and hijack the session
+- the agent resumes from the wrong branch and reports motion instead of verified progress
 
-This skill fixes that by making compression carry planning structure, not just prose.
+In other words, this is not just a token-saving skill.
+It is a continuity-preservation skill for long-running agent work.
+
+The practical job is to preserve enough execution state that the agent can continue correctly after compression without making the user restate the task.
+
+If a compression strategy cannot reliably preserve:
+- the latest user goal
+- what problem is currently being solved
+- current task status
+- changed artifacts
+- blockers
+- what counts as verified completion
+- the immediate next executable step
+
+then it has failed, even if the token count looks efficient.
 
 ## What this skill adds
 
-This skill adds five things to ordinary summarization:
+This skill adds six things to ordinary summarization:
 
 1. a current-objective-first summary format
-2. a direction-change register so later corrections do not vanish
-3. a timeline layer so phase order survives compression
-4. a TODO layer so pending work stays explicit and ranked
-5. a post-compression recovery protocol that always prioritizes the latest user turn
+2. an active-problem field so the real issue does not disappear into narrative
+3. a direction-change register so later corrections do not vanish
+4. a timeline layer so phase order survives compression
+5. a TODO layer so pending work stays explicit and ranked
+6. a post-compression recovery protocol that always prioritizes the latest user turn
 
 ## When to use
 
 Activate this skill when:
 - a session is approaching context limits
 - repeated summarization causes drift
-- the agent starts forgetting modified files, decisions, or blockers
+- the agent starts forgetting modified files, decisions, blockers, or verification state
 - a compression boundary happened and the surviving summary may be stale
 - the user says the agent is stuck on an old task after compression
 - a task has multiple phases and needs continuity across long execution
+- the agent is at risk of resuming from old TODO scaffolding instead of the latest instruction
 
 ## Core idea
 
 Optimize for tokens-per-task, not tokens-per-request.
 
 A good compression strategy preserves the pieces that let work continue immediately:
+- active problem
 - current user objective
 - most recent direction change or correction
+- why the current work matters
 - timeline position
 - files or artifacts already changed
 - decisions already made
 - active TODO state
 - current blockers
+- verification state
 - immediate next executable step
+
+## Failure modes to guard against
+
+Bad compression usually fails in one of these ways:
+
+1. Goal drift
+   - the old objective survives, but the latest user redirect is lost
+2. Artifact loss
+   - files, paths, URLs, commands, error messages, IDs, and identifiers disappear
+3. Timeline collapse
+   - done / now / next are no longer distinguishable
+4. TODO resurrection
+   - stale pending items reappear as if still active
+5. Verification loss
+   - the summary says something was handled without preserving what was actually verified
+6. Recovery blindness
+   - after a weak handoff, the agent continues confidently instead of re-anchoring on the latest user turn
+
+A usable compression workflow must explicitly defend against all six.
 
 ## Preferred strategy
 
@@ -71,64 +109,75 @@ Instead of regenerating one giant summary every time:
 3. merge it into the existing sections
 4. preserve a compact continuity block for recovery
 5. preserve timeline + TODO state as first-class objects
+6. preserve verification state explicitly instead of implying completion
 
 This is usually safer than opaque compression and more stable than repeated full-summary regeneration.
 
-## Required summary structure
+## Required minimum handoff schema
 
-Every compression summary should preserve these sections:
+Every compression handoff should preserve these sections:
 
 ```markdown
+## Active Problem
+[one sentence: what is broken / missing / being decided right now]
+
 ## Current Objective
-[What the user currently wants, stated from the latest turn]
+[one sentence: what the user currently wants, not what they wanted 50 turns ago]
+
+## Why This Matters
+[one sentence: what failure, risk, or outcome this work affects]
 
 ## Recent Direction Changes
 - User corrected X
 - Goal changed from A to B
 
 ## Timeline
-- T1: What phase is already complete
-- T2: What phase is in progress
-- T3: What phase is next
+- done:
+- now:
+- next:
 
-## Active TODOs
-- [in_progress] Current highest-priority action
-- [pending] Next action
-- [blocked] Waiting on auth / approval / external system
-
-## Files / Artifacts Touched
-- path/to/file: what changed
-- asset.png: created / selected / rejected
+## Artifacts
+- changed:
+- referenced:
+- pending to inspect:
 
 ## Decisions Made
 - Decision 1
 - Decision 2
 
-## Current Blockers
-- Missing auth
-- Waiting on external system
+## Active TODOs
+- [in_progress]
+- [pending]
+- [blocked]
+- [cancelled/stale]
 
-## Next Executable Step
-1. The next concrete action to take
+## Verification State
+- verified:
+- not yet verified:
+
+## Immediate Next Step
+[the next concrete tool action to take]
 ```
 
 If a section has nothing in it, write `None`.
 Do not silently drop the section.
+If any of these sections are missing, the handoff is incomplete.
 
-## Why compression fails
+## Continuity block
 
-Compression usually breaks in one of these ways:
+At every compression boundary, preserve this minimum block:
+- active problem
+- current objective
+- most recent correction
+- why this matters
+- current timeline state
+- touched files/artifacts
+- active TODOs
+- blockers
+- verification state
+- next step
 
-1. task drift
-   - summary keeps the original task but loses the later redirect
-2. artifact loss
-   - modified files, URLs, IDs, or error messages vanish
-3. continuity collapse
-   - summary explains what happened, but not what to do next
-4. stale todo capture
-   - old task scaffolding survives and gets mistaken for the current goal
-5. phase flattening
-   - the work loses sequence, so the agent cannot tell what is done, current, and next
+If this block is missing, resumption quality will usually collapse.
 
 ## Timeline design
 
@@ -147,8 +196,8 @@ Example:
 ```markdown
 ## Timeline
 - done: public skill bundle drafted
-- now: refine SKILL.md and README structure
-- next: push to GitHub and backfill real URLs
+- now: refine SKILL.md and recovery schema
+- next: verify handoff examples and publish
 ```
 
 For larger projects, expand to milestone form:
@@ -172,46 +221,34 @@ Rules:
 2. TODO priority should follow the latest user objective, not historical inertia
 3. cancelled or stale tasks must remain visible long enough to avoid accidental resurrection
 4. if the user redirects the work, rebuild TODO state immediately
+5. blocked work must stay visible instead of being silently dropped
 
 Recommended format:
 
 ```markdown
 ## Active TODOs
-- [in_progress] Rewrite public SKILL.md to explain the failure mode clearly
-- [pending] Add bilingual README files
-- [pending] Push repo to GitHub
-- [cancelled] Continue old publishing path without fixing compression logic
+- [in_progress] Rewrite SKILL.md to define compression failure modes clearly
+- [pending] Add required handoff schema and continuity block
+- [pending] Verify public and installed copies match
+- [cancelled] Continue old branch without fixing compression logic
 ```
 
-## Post-compression recovery rules
+## Verification state design
 
-When compression has already happened and the surviving context may be wrong, recover in this order:
+A readable summary is not enough.
+The handoff must also distinguish what is actually verified from what is merely prepared, drafted, or assumed.
 
-1. Treat the latest explicit user message as the source of truth.
-2. Treat old TODO state and compressed summaries as background only.
-3. If the latest user message changed direction, rebuild the task list around that new goal.
-4. Restate the active goal in one sentence before continuing work.
-5. If old summary state conflicts with the latest user turn, mark the old state as stale and proceed with the latest turn.
-6. Re-anchor the timeline so the agent knows what is done, now, and next.
+Recommended format:
 
-Short version:
-- latest user turn beats compressed summary
-- latest user turn beats old todo state
-- current goal must be restated before resuming execution
-- timeline must be re-anchored before multi-step work continues
+```markdown
+## Verification State
+- verified: installed skill patched and saved
+- verified: public skill patched and saved
+- not yet verified: runtime compression prompt updated
+- not yet verified: real long-session recovery tested end-to-end
+```
 
-## Continuity block
-
-At every compression boundary, preserve this minimum block:
-- current objective
-- most recent correction
-- current timeline state
-- touched files/artifacts
-- active TODOs
-- blockers
-- next step
-
-If this block is missing, resumption quality will usually collapse.
+Without this section, compression often turns preparation into fake completion.
 
 ## Execution protocol
 
@@ -220,25 +257,31 @@ Run compression and recovery as gates, not as loose advice.
 ### Gate 1: Pre-compression
 
 Before compressing, the agent should be able to answer all of these explicitly:
+- What problem is being solved right now?
 - What is the current objective?
 - What changed most recently?
 - What is the current `in_progress` TODO?
+- What has actually been verified?
 - What is the next executable step?
 
 If any answer is missing or vague:
 1. rebuild the continuity block first
 2. keep literal paths / IDs / blockers visible
-3. do not compress yet
+3. keep verification state explicit
+4. do not compress yet
 
 ### Gate 2: Post-compression validation
 
 Immediately after generating a compressed summary, verify that the summary still preserves:
+- active problem
 - current objective
 - most recent direction change
+- why this work matters
 - done / now / next timeline state
 - active TODO state
 - touched files / artifacts / IDs
 - blockers
+- verification state
 - next executable step
 
 If any required item is missing, contradictory, or over-abstracted:
@@ -249,10 +292,12 @@ If any required item is missing, contradictory, or over-abstracted:
 ### Gate 3: Resume-before-action
 
 Before taking the next tool or execution step after a compression boundary, restate:
-1. one-line current objective
-2. any stale-summary conflicts
-3. rebuilt active TODOs
-4. next executable step
+1. one-line active problem
+2. one-line current objective
+3. any stale-summary conflicts
+4. rebuilt active TODOs
+5. what is verified vs not verified
+6. next executable step
 
 If the latest user turn conflicts with the compressed summary, the conflict must be resolved before execution continues.
 
@@ -263,6 +308,27 @@ If the agent cannot confidently recover the live task state:
 2. mark the surviving summary as incomplete or stale
 3. reconstruct continuity from the latest user turn + literal artifacts + remaining TODO state
 4. if recovery is still impossible, ask for clarification instead of guessing
+
+## Post-compression recovery rules
+
+When a compression boundary has already happened and the surviving context is imperfect, the agent must not blindly obey stale summaries, old TODOs, or earlier task scaffolding.
+
+Apply this recovery order:
+
+1. Treat the user's latest explicit message as the current source of truth.
+2. Reinterpret any surviving TODO list as background only, not as the active objective.
+3. If the latest user message changes direction, immediately rebuild the task list around the new goal.
+4. In the next response, explicitly state the active goal in one sentence before continuing execution.
+5. If old summary state conflicts with the latest message, prefer the latest message and mark the older state as stale.
+6. Re-anchor the timeline so the agent knows what is done, what is in progress now, and what is next.
+7. Distinguish verified completion from preparation before reporting progress.
+
+Short version:
+- latest user turn beats compressed summary
+- latest user turn beats old todo state
+- current objective must be restated after compression before resuming work
+- timeline must be re-anchored before multi-step execution resumes
+- verified completion beats optimistic narrative
 
 ## Edge cases
 
@@ -289,6 +355,10 @@ Handle these explicitly instead of relying on generic summarization:
    - if the current objective or next step cannot be recovered reliably, do not guess
    - pause, rebuild, or ask
 
+6. Verification ambiguity
+   - if something was drafted but not checked, mark it as not yet verified
+   - do not compress “prepared” and “verified” into the same status
+
 ## Compression triggers
 
 Useful trigger strategies:
@@ -308,12 +378,14 @@ Do not judge compression by lexical similarity alone.
 Judge it by whether the agent can continue correctly.
 
 Useful probes:
+- What problem is being solved right now?
 - What is the current user objective?
 - What changed most recently?
 - What phase are we in?
 - Which files were modified?
 - What TODO is actively in progress?
 - What blocker remains?
+- What has actually been verified?
 - What is the next action?
 
 If the agent cannot answer those precisely after compression, the compression failed.
@@ -327,58 +399,68 @@ Avoid these failure modes:
 - replacing literal paths, IDs, or errors with vague abstractions
 - treating a structurally complete summary as trustworthy when its contents conflict with the latest turn
 - guessing through incomplete continuity instead of rebuilding or asking
+- reporting something as done when only the draft or setup exists
 
 ## Practical checklist
 
 - preserve structure, not just prose
 - keep the latest user correction visible
+- keep the active problem visible
 - keep file paths and IDs literal
 - preserve blockers explicitly
 - preserve the next step explicitly
 - preserve timeline state explicitly
 - preserve ranked TODO state explicitly
+- preserve verification state explicitly
 - never let a stale todo list outrank the latest user message
 
 ## Example recovery handoff
 
 ```markdown
+## Active Problem
+The session was compressed and the surviving state may still over-weight old task scaffolding.
+
 ## Current Objective
-Publish the updated compression skill to GitHub.
+Upgrade the context-compression skill so it fully defines the real failure modes and recovery contract.
+
+## Why This Matters
+If the skill only explains summarization theory, future sessions will keep drifting after compression.
 
 ## Recent Direction Changes
-- User said the real problem is bad compression recovery, not the original publishing task.
-- User asked to turn that fix into a skill and publish it.
-- User then asked for bilingual README files and a stronger planning structure.
+- User said the skill does not explain what problem it solves.
+- User then said the skill still had not actually been updated.
+- User clarified the target is the context-compression skill itself, and it is still not complete enough.
 
 ## Timeline
-- done: public bundle initialized
-- now: rewrite skill and readmes with timeline + TODO support
-- next: create GitHub repo and push
+- done: inspected installed and public copies
+- now: merge and strengthen both copies
+- next: verify the rewritten content matches in both places
 
-## Active TODOs
-- [in_progress] Upgrade public SKILL.md
-- [pending] Add README.md and README_EN.md
-- [pending] Push to GitHub
-
-## Files / Artifacts Touched
-- ~/.hermes/skills/openclaw-imports/context-compression/SKILL.md: added recovery rules
-- /Users/aiad/Desktop/claw/public-skills/context-compression-skill/SKILL.md: public bundle
-- /Users/aiad/Desktop/claw/public-skills/context-compression-skill/README.md: Chinese README
-- /Users/aiad/Desktop/claw/public-skills/context-compression-skill/README_EN.md: English README
+## Artifacts
+- changed: ~/.hermes/skills/openclaw-imports/context-compression/SKILL.md
+- changed: /Users/aiad/Desktop/claw/public-skills/context-compression-skill/SKILL.md
+- referenced: prior compressed-session failure pattern
+- pending to inspect: runtime compression prompt outside the skill file
 
 ## Decisions Made
-- Compression recovery must prioritize the latest user turn over old TODO state.
-- Timeline and TODO state must survive compression.
+- This skill must define continuity preservation, not just token reduction.
+- Verification state must survive compression explicitly.
 
-## Current Blockers
-- Need GitHub repo creation/push access.
+## Active TODOs
+- [in_progress] Rewrite the skill with active problem, failure modes, handoff schema, and verification rules
+- [pending] Verify installed and public copies match
+- [pending] Evaluate whether runtime prompt also needs alignment
+- [cancelled/stale] Continue discussing without patching the actual skill files
 
-## Next Executable Step
-1. Create or connect a GitHub repo.
-2. Push the public skill bundle.
-3. Update skill.json with the final raw URL.
+## Verification State
+- verified: installed and public files were inspected
+- not yet verified: rewritten files saved and re-read
+- not yet verified: runtime compaction prompt changed
+
+## Immediate Next Step
+Write the merged skill content into both installed and public SKILL.md files, then re-read them to confirm.
 ```
 
 ## One-line rule
 
-Compression is only good if the agent resumes the right task, with the right artifacts, on the right timeline, and takes the right next step.
+Compression is only good if the agent resumes the right task, with the right artifacts, on the right timeline, with honest verification state, and takes the right next step.
