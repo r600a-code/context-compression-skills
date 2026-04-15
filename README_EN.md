@@ -1,22 +1,21 @@
 # context-compression
 
-A public Hermes skill for continuity-safe context compression.
+A Hermes skill for long-session context compression.
 
-This skill is not only about making context shorter.
-It is about preventing the agent from resuming the wrong work after compression.
+It is not only about making context shorter. It is about keeping the agent on the right task after compression.
 
 ## What problem it solves
 
-Long sessions usually break in a few predictable ways after compression:
+After compression, long sessions often fail in the same ways:
 - the earliest task survives, but later redirections disappear
 - files, URLs, IDs, and error messages get lost
 - the summary explains what happened, but not what to do next
 - stale TODO state gets mistaken for the live objective
-- multi-phase work loses sequence, so the agent no longer knows what is done, current, and next
+- multi-phase work loses sequence
 
-This skill is designed to keep compressed context executable, not merely readable.
+This skill is designed to keep compressed context executable.
 
-## What it adds
+## What it preserves
 
 Compared with ordinary summarization, it forces the summary to preserve:
 - current objective
@@ -27,29 +26,23 @@ Compared with ordinary summarization, it forces the summary to preserve:
 - blockers
 - next executable step
 
-In other words: it compresses the planning spine together with the narrative.
-
 ## Key design ideas
 
-### 1. Current objective wins
-After a compression boundary, old summaries and stale TODO state must never outrank the user's latest explicit message.
+### Current objective wins
+After a compression boundary, the user's latest explicit message has highest priority.
 
 Core rules:
 - latest user turn beats compressed summary
 - latest user turn beats old todo state
 
-### 2. Timeline element
-This skill requires a timeline, not just a fact dump.
-
-Minimal timeline:
+### Timeline
+This skill requires a minimal timeline:
 - done
 - now
 - next
 
-That preserves execution order across compression.
-
-### 3. TODO element
-This skill requires active work to survive as ranked TODO state rather than scattered prose.
+### TODO
+Active work should survive as ranked TODO state.
 
 Rules:
 - only one item should be `in_progress`
@@ -62,7 +55,6 @@ Rules:
 - multi-phase build / publishing / writing workflows
 - tasks that frequently cross compression boundaries
 - agents that need to preserve the main line across many turns
-- situations where the user already complained that the agent resumed an outdated task
 
 ## Files
 - `SKILL.md` — main skill
@@ -72,19 +64,11 @@ Rules:
 
 ## Install
 
-Planned install style:
-
 ```bash
 npx skills add <owner>/<repo>
 ```
 
 Or copy the folder into your local skills directory.
-
-## After publishing
-
-Once the repository is on GitHub, replace the placeholder URLs in `skill.json` with the final links:
-- `https://github.com/<owner>/context-compression-skill`
-- `https://raw.githubusercontent.com/<owner>/context-compression-skill/main/SKILL.md`
 
 ## One line
 
