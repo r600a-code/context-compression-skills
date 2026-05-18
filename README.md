@@ -103,3 +103,8 @@
 
 好压缩，不是更短。
 是压完之后还能继续把事做对。
+
+## 联系方式
+
+- 微信：`wwwr600a`
+- Twitter/X：[@ADfunAI](https://x.com/ADfunAI)
